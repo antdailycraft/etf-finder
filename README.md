@@ -42,7 +42,13 @@ npm run serve      # http://localhost:8787 로컬 서빙
 
 ## 판정 데이터 유지보수
 
-판정은 종목명·네이버 분류 기반 추정이므로 경계 사례(채권 커버드콜, 채권선물, 비적격 TDF 등)는 `uncertain`으로 표시된다. 분기 1회 증권사 공시 목록(예: 한국투자증권 "퇴직연금 매매가능 ETF 리스트", KODEX 연금 페이지)과 대조해 `data/overrides.json`에 확정 판정을 추가할 것.
+판정은 종목명·네이버 분류 기반 추정이므로 경계 사례(채권 커버드콜, 채권선물, 비적격 TDF 등)는 `uncertain`으로 표시된다. 분기 1회 운용사·증권사 공시 목록과 대조해 `data/overrides.json`에 확정 판정을 추가할 것. 대조 소스: [KODEX](https://www.samsungfund.com/etf/product/pensionlist.do) · [RISE](https://www.riseetf.co.kr/pens/invest) · [ACE](https://www.aceetf.co.kr/pension/pensionFundList) · [SOL](https://www.soletf.com/ko/strategy/pension) · TIGER 상품상세의 "퇴직연금 100%/70%" 배지.
+
+2026-07 대조 결과 반영됨 (직접 검증 133종목 기준 규칙 엔진 정확도 93.2%). 주의할 패턴:
+- **자금공여형 TRS 합성 금리형**(TIGER CD금리 KIS, KODEX KOFR 합성, 全 미국달러 SOFR 합성)은 이름은 파킹형이지만 **위험자산(70%)**. 같은 KOFR 합성이라도 운용사별로 100%/70%가 갈리므로 상품별 확인 필수.
+- **국채선물 ETF**는 퇴직연금 매매 자체가 불가.
+- **채권 커버드콜**은 상품별로 100%/70%가 갈림 (미국30년국채 커버드콜류는 대부분 100%).
+- 중소 운용사(KIWOOM·HANARO·1Q 등) 합성 금리형은 공시 미확인으로 `uncertain` 처리됨.
 
 ## 유의사항
 

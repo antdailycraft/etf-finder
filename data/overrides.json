@@ -1,3 +1,50 @@
 {
-  "_doc": "종목코드 → 수동 판정. 규칙 엔진(scripts/classify.mjs) 결과를 덮어쓴다. status: safe|uncertain|unsafe, category/reason은 선택. 증권사 공시 목록(한국투자증권 퇴직연금 매매가능 ETF 리스트 등)과 분기 1회 대조해 갱신할 것."
+  "_doc": "종목코드 → 수동 판정. 규칙 엔진(scripts/classify.mjs) 결과를 덮어쓴다. status: safe|uncertain|unsafe, category/reason은 선택. 근거: 운용사 공시(KODEX/TIGER/RISE/ACE/SOL 연금투자가능 목록, 2026-07 대조). 분기 1회 재대조할 것.",
+
+  "_공시가 위험자산(70%)으로 분류 — 규칙 엔진의 false positive 교정": null,
+  "0005C0": { "status": "unsafe", "category": "해외주식", "reason": "미국S&P500 주식형(엔화노출) — 위험자산(70%), 운용사 공시" },
+  "357870": { "status": "unsafe", "reason": "자금공여형 합성(TRS) — 위험자산(70%), 운용사 공시" },
+  "423160": { "status": "unsafe", "reason": "자금공여형 합성(TRS) — 위험자산(70%), 운용사 공시" },
+  "455030": { "status": "unsafe", "reason": "미국달러 SOFR 합성 — 위험자산(70%), 운용사 공시" },
+  "456610": { "status": "unsafe", "reason": "미국달러 SOFR 합성 — 위험자산(70%), 운용사 공시" },
+  "455960": { "status": "unsafe", "reason": "미국달러 SOFR 합성 — 위험자산(70%), 운용사 공시" },
+  "456880": { "status": "unsafe", "reason": "미국달러 SOFR 합성 — 위험자산(70%), 운용사 공시" },
+  "341850": { "status": "unsafe", "reason": "리츠 편입 — 위험자산(70%), 운용사 공시" },
+  "183700": { "status": "unsafe", "reason": "200채권혼합50 — 위험자산(70%), 운용사 공시 (동일 유형이라도 상품별 분류 상이)" },
+
+  "_공시가 100% 가능으로 확인 — 규칙 엔진의 false negative 교정": null,
+  "476550": { "status": "safe", "reason": "미국30년국채 커버드콜 — 안전자산(100%), 운용사 공시" },
+  "481060": { "status": "safe", "reason": "미국30년국채 타겟커버드콜 — 안전자산(100%), 운용사 공시" },
+  "475080": { "status": "safe", "reason": "커버드콜 채권혼합 — 안전자산(100%), 운용사 공시" },
+  "472830": { "status": "safe", "reason": "미국30년국채 커버드콜 — 안전자산(100%), 운용사 공시" },
+  "473330": { "status": "safe", "reason": "미국30년국채 커버드콜 — 안전자산(100%), 운용사 공시" },
+  "0040X0": { "status": "safe", "reason": "미국채 커버드콜 혼합 — 안전자산(100%), 운용사 공시" },
+  "0040Y0": { "status": "safe", "reason": "커버드콜 OTM 채권혼합 — 안전자산(100%), 운용사 공시" },
+  "0000D0": { "status": "safe", "reason": "미국채 커버드콜 밸런스 — 안전자산(100%), 운용사 공시" },
+  "461490": { "status": "safe", "category": "채권혼합", "reason": "글로벌자산배분(채권 중심) — 안전자산(100%), 운용사 공시" },
+
+  "_커버드콜혼합이지만 공시상 70% — 상품별 차이": null,
+  "0013R0": { "status": "unsafe", "reason": "테슬라 미국채 커버드콜 혼합 — 위험자산(70%), 운용사 공시" },
+
+  "_국채선물 ETF — 운용사 공시상 퇴직연금 매매 불가(0%)": null,
+  "152380": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "308620": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "304660": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "305080": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "432600": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "295000": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "397420": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "267440": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "298340": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+  "289670": { "status": "unsafe", "reason": "국채선물 — 퇴직연금 매매 불가, 운용사 공시" },
+
+  "_합성(TRS) 금리형 중 미검증 — 자금공여형 여부에 따라 분류가 갈리므로 확인 필요로 강등": null,
+  "460270": { "status": "uncertain", "reason": "SOFR 합성 — 타사 동일 상품 전부 70%, 자금공여형 여부 확인 필요" },
+  "456200": { "status": "uncertain", "reason": "SOFR 합성 — 타사 동일 상품 전부 70%, 자금공여형 여부 확인 필요" },
+  "458210": { "status": "uncertain", "reason": "CD금리 합성(TRS) — 자금공여형 여부 미확인, 증권사 확인 필요" },
+  "491610": { "status": "uncertain", "reason": "CD금리 합성(TRS) — 자금공여형 여부 미확인, 증권사 확인 필요" },
+  "453060": { "status": "uncertain", "reason": "KOFR 합성(TRS) — 자금공여형 여부 미확인, 증권사 확인 필요" },
+  "489000": { "status": "uncertain", "reason": "엔화 초단기국채 합성 — 자금공여형 여부 미확인, 증권사 확인 필요" },
+  "0138Y0": { "status": "uncertain", "reason": "원자재(금) 채권혼합 — 파생 위험평가액 확인 필요" },
+  "0184N0": { "status": "uncertain", "reason": "원자재(은) 채권혼합 — 파생 위험평가액 확인 필요" }
 }
