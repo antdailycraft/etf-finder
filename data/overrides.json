@@ -1,0 +1,3 @@
+{
+  "_doc": "종목코드 → 수동 판정. 규칙 엔진(scripts/classify.mjs) 결과를 덮어쓴다. status: safe|uncertain|unsafe, category/reason은 선택. 증권사 공시 목록(한국투자증권 퇴직연금 매매가능 ETF 리스트 등)과 분기 1회 대조해 갱신할 것."
+}

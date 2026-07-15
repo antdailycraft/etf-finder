@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>퇴직연금 안전자산 ETF</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- APP:START -->
+<div id="root">
+  <header class="hdr">
+    <h1>퇴직연금 안전자산 ETF</h1>
+    <p class="hdr-sub">DC·IRP에서 <strong>100% 매수 가능</strong>한 국내 상장 ETF <span id="as-of"></span></p>
+  </header>
+
+  <div class="controls">
+    <input id="search" type="search" placeholder="ETF 이름·종목코드 검색" autocomplete="off" inputmode="search">
+    <div class="row">
+      <label class="toggle">
+        <input id="safe-only" type="checkbox" checked>
+        <span>안전자산만</span>
+      </label>
+      <select id="sort" aria-label="정렬">
+        <option value="aum">순자산 많은순</option>
+        <option value="ter">총보수 낮은순</option>
+        <option value="y1">1년 수익률순</option>
+        <option value="m3">3개월 수익률순</option>
+        <option value="volume">거래량 많은순</option>
+      </select>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="유형 필터"></div>
+  </div>
+
+  <p class="count" id="count"></p>
+  <ul class="list" id="list"></ul>
+
+  <footer class="ftr">
+    <p><strong>유의사항</strong> — 이 판정은 퇴직연금감독규정(위험자산 70% 한도)에 근거해 종목명·분류 데이터로 추정한 <em>참고용</em> 정보입니다. 증권사·상품 약관에 따라 실제 분류가 다를 수 있으니 매수 전 반드시 이용 중인 증권사 앱에서 확인하세요. 수익률·보수 등 수치는 데이터 기준일 시점 네이버 금융 자료입니다. 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+  </footer>
+</div>
+<!-- APP:END -->
+<script src="app.js"></script>
+</body>
+</html>

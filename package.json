@@ -1,0 +1,16 @@
+{
+  "name": "etf-finder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "퇴직연금(DC/IRP) 안전자산 100% 매수 가능 국내 ETF 파인더",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "fetch": "node scripts/build-data.mjs",
+    "artifact": "node scripts/build-artifact.mjs",
+    "test": "node --test 'test/*.test.mjs'",
+    "serve": "python3 -m http.server 8787 -d docs"
+  }
+}
