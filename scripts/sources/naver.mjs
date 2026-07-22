@@ -60,6 +60,18 @@ export async function fetchEtfAnalysis(code) {
   }
 }
 
+/** 일반 종목(주식) 현재가. 실패 시 null. */
+export async function fetchStockPrice(code) {
+  try {
+    const res = await fetchWithRetry(`https://m.stock.naver.com/api/stock/${code}/basic`);
+    const json = await res.json();
+    return parseNumber(json.closePrice);
+  } catch (err) {
+    console.warn(`  ! 주가 조회 실패 ${code}: ${err.message}`);
+    return null;
+  }
+}
+
 /** "24조 5,217억" / "994억" 같은 한국어 금액 문자열 → 억원 단위 숫자 */
 export function parseKoreanAmount(str) {
   if (str == null || str === '') return null;

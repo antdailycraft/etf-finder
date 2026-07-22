@@ -120,10 +120,20 @@
 
   function holdingsSection(holdings) {
     if (!holdings?.length) return '';
+    const anyWeight = holdings.some((h) => h[1] != null);
+    const anyEst = holdings.some((h) => h[2]);
     const rows = holdings
-      .map(([name, w]) => `<li><span class="h-name">${esc(name)}</span>${w != null ? `<span class="h-w">${w.toFixed(2)}%</span>` : ''}</li>`)
+      .map(([name, w, est]) => {
+        const weight = w != null ? `${est ? '≈' : ''}${w.toFixed(2)}%` : anyWeight ? '–' : '';
+        return `<li><span class="h-name">${esc(name)}</span><span class="h-w">${weight}</span></li>`;
+      })
       .join('');
-    return `<div class="holdings"><p class="sec-k">상위 구성종목</p><ol>${rows}</ol></div>`;
+    const note = !anyWeight
+      ? '<p class="h-note">채권 등 개별 편입 비중이 공시되지 않는 상품입니다</p>'
+      : anyEst
+        ? '<p class="h-note">≈ 자산군 비중과 보유주수로 산출한 추정치 · 채권 개별 비중은 미공시(–)</p>'
+        : '';
+    return `<div class="holdings"><p class="sec-k">상위 구성종목</p><ol>${rows}</ol>${note}</div>`;
   }
 
   function card(item) {

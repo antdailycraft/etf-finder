@@ -277,6 +277,7 @@ body {
 }
 .holdings .h-name { min-width: 0; overflow-wrap: anywhere; flex: 1; }
 .holdings .h-w { color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.h-note { margin: 6px 0 0; color: var(--muted); font-size: 0.72rem; }
 
 .reason {
   margin: 10px 0 0;
