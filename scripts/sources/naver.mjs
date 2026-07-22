@@ -49,6 +49,17 @@ export async function fetchEtfDetail(code) {
   }
 }
 
+/** 종목 분석 (자산군 비중·상위 구성종목). 실패 시 null. */
+export async function fetchEtfAnalysis(code) {
+  try {
+    const res = await fetchWithRetry(`https://m.stock.naver.com/api/stock/${code}/etfAnalysis`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`  ! 분석 조회 실패 ${code}: ${err.message}`);
+    return null;
+  }
+}
+
 /** "24조 5,217억" / "994억" 같은 한국어 금액 문자열 → 억원 단위 숫자 */
 export function parseKoreanAmount(str) {
   if (str == null || str === '') return null;

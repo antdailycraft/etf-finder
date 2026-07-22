@@ -4,7 +4,13 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { fetchEtfList, fetchEtfDetail, parseKoreanAmount, parseNumber } from './sources/naver.mjs';
+import {
+  fetchEtfList,
+  fetchEtfDetail,
+  fetchEtfAnalysis,
+  parseKoreanAmount,
+  parseNumber,
+} from './sources/naver.mjs';
 import { classify, applyOverride } from './classify.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -19,6 +25,32 @@ const LIMIT = limitArg > -1 ? Number(process.argv[limitArg + 1]) : Infinity;
 
 function pickInfo(totalInfos, code) {
   return totalInfos?.find((t) => t.code === code)?.value ?? null;
+}
+
+// 자산군 표시 순서 (UI의 색상 슬롯 순서와 일치해야 함)
+const ASSET_ORDER = ['BOND', 'EQUITY', 'CASH', 'DERIVATIVES', 'OTHERS'];
+
+/** assetPortfolioList → [["BOND", 103.19], ...] (0% 제외, 고정 순서) */
+function extractAssets(analysis) {
+  const list = analysis?.assetPortfolioList;
+  if (!Array.isArray(list) || !list.length) return null;
+  const byCode = new Map(list.map((a) => [a.detailTypeCode, a.weight]));
+  const out = [];
+  for (const code of ASSET_ORDER) {
+    const w = byCode.get(code);
+    if (typeof w === 'number' && w !== 0) out.push([code, w]);
+  }
+  for (const a of list) {
+    if (!ASSET_ORDER.includes(a.detailTypeCode) && a.weight) out.push([a.detailTypeCode, a.weight]);
+  }
+  return out.length ? out : null;
+}
+
+/** etfTop10MajorConstituentAssets → 상위 5개 [["삼성전자", 32.76], ["국고채...", null], ...] */
+function extractHoldings(analysis) {
+  const list = analysis?.etfTop10MajorConstituentAssets;
+  if (!Array.isArray(list) || !list.length) return null;
+  return list.slice(0, 5).map((h) => [h.itemName, parseNumber(h.etfWeight)]);
 }
 
 async function mapPool(items, worker, size) {
@@ -49,7 +81,10 @@ async function main() {
   const items = await mapPool(
     list,
     async (row) => {
-      const detail = await fetchEtfDetail(row.itemcode);
+      const [detail, analysis] = await Promise.all([
+        fetchEtfDetail(row.itemcode),
+        fetchEtfAnalysis(row.itemcode),
+      ]);
       done++;
       if (done % 100 === 0) console.log(`  ${done}/${list.length}`);
 
@@ -80,6 +115,8 @@ async function main() {
           y1: parseNumber(ki.returnRate1y),
         },
         baseIndex: baseIndex || null,
+        assets: extractAssets(analysis),
+        holdings: extractHoldings(analysis),
       };
     },
     CONCURRENCY,
@@ -90,16 +127,18 @@ async function main() {
   const nullTer = items.length - terValues.length;
   const badTer = terValues.filter((t) => t < 0 || t > 3.5).length;
   const nullIssuer = items.filter((i) => !i.issuer).length;
+  const nullAssets = items.filter((i) => !i.assets).length;
   const safeCount = items.filter((i) => i.safe === 'safe').length;
   const uncertainCount = items.filter((i) => i.safe === 'uncertain').length;
 
   console.log(`  안전 ${safeCount} / 확인필요 ${uncertainCount} / 위험 ${items.length - safeCount - uncertainCount}`);
-  console.log(`  TER 누락 ${nullTer} (${((nullTer / items.length) * 100).toFixed(1)}%), 범위 밖 ${badTer}, 운용사 누락 ${nullIssuer}`);
+  console.log(`  TER 누락 ${nullTer} (${((nullTer / items.length) * 100).toFixed(1)}%), 범위 밖 ${badTer}, 운용사 누락 ${nullIssuer}, 자산구성 누락 ${nullAssets}`);
 
   if (LIMIT === Infinity) {
     if (nullTer / items.length > 0.1) throw new Error('sanity gate 실패: TER 누락률 > 10%');
     if (badTer > 5) throw new Error(`sanity gate 실패: TER 범위(0~3.5%) 밖 ${badTer}종목`);
     if (safeCount < 50) throw new Error(`sanity gate 실패: 안전자산 판정 ${safeCount}종목 (< 50)`);
+    if (nullAssets / items.length > 0.3) throw new Error('sanity gate 실패: 자산구성 누락률 > 30%');
   }
 
   items.sort((a, b) => (b.aum ?? 0) - (a.aum ?? 0));

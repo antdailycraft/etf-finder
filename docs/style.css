@@ -16,6 +16,12 @@
   --chip-bg: #ffffff;
   --chip-on-bg: #1a1c20;
   --chip-on-fg: #ffffff;
+  /* 자산군 시리즈 색 (검증된 카테고리 팔레트, 고정 슬롯: 채권/주식/현금/파생/기타) */
+  --s-bond: #2a78d6;
+  --s-equity: #eb6834;
+  --s-cash: #1baf7a;
+  --s-derivatives: #eda100;
+  --s-others: #e87ba4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +43,11 @@
     --chip-bg: #1b1e24;
     --chip-on-bg: #e8eaed;
     --chip-on-fg: #101216;
+    --s-bond: #3987e5;
+    --s-equity: #d95926;
+    --s-cash: #199e70;
+    --s-derivatives: #c98500;
+    --s-others: #d55181;
   }
 }
 
@@ -45,6 +56,7 @@
   --accent: #2563eb; --safe-bg: #dcfce7; --safe-fg: #166534; --warn-bg: #fef3c7; --warn-fg: #92400e;
   --danger-bg: #fee2e2; --danger-fg: #991b1b; --up: #d33; --down: #2563eb;
   --chip-bg: #fff; --chip-on-bg: #1a1c20; --chip-on-fg: #fff;
+  --s-bond: #2a78d6; --s-equity: #eb6834; --s-cash: #1baf7a; --s-derivatives: #eda100; --s-others: #e87ba4;
 }
 
 :root[data-theme="dark"] {
@@ -52,6 +64,7 @@
   --accent: #6ea8ff; --safe-bg: #123822; --safe-fg: #6fdb96; --warn-bg: #3a2e10; --warn-fg: #f0c05a;
   --danger-bg: #3d1a1a; --danger-fg: #f28b8b; --up: #f87171; --down: #6ea8ff;
   --chip-bg: #1b1e24; --chip-on-bg: #e8eaed; --chip-on-fg: #101216;
+  --s-bond: #3987e5; --s-equity: #d95926; --s-cash: #199e70; --s-derivatives: #c98500; --s-others: #d55181;
 }
 
 * { box-sizing: border-box; }
@@ -207,6 +220,63 @@ body {
   padding-top: 10px;
 }
 .detail-grid .stat .v { font-size: 0.88rem; }
+
+.sec-k {
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bar .seg { min-width: 2px; }
+.bar .seg:first-child { border-radius: 6px 0 0 6px; }
+.bar .seg:last-child { border-radius: 0 6px 6px 0; }
+.bar .seg:only-child { border-radius: 6px; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.legend b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: baseline;
+}
+
+.holdings ol { margin: 0; padding: 0; list-style: none; counter-reset: h; }
+.holdings li {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 2px 0;
+}
+.holdings li::before {
+  counter-increment: h;
+  content: counter(h);
+  flex-shrink: 0;
+  width: 16px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.holdings .h-name { min-width: 0; overflow-wrap: anywhere; flex: 1; }
+.holdings .h-w { color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 
 .reason {
   margin: 10px 0 0;

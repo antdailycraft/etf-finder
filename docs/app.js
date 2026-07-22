@@ -93,6 +93,39 @@
     return `<span class="stat"><span class="k">${label}</span><span class="v ${cls}">${value}</span></span>`;
   }
 
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+  const ASSET_LABEL = { BOND: '채권', EQUITY: '주식', CASH: '현금', DERIVATIVES: '파생', OTHERS: '기타' };
+  const assetVar = (code) => `var(--s-${code.toLowerCase()}, var(--muted))`;
+
+  // 자산군 비중: 막대(양수 비중 정규화) + 범례(실제 값 — 채권형은 음수·100% 초과 가능)
+  function assetSection(assets) {
+    if (!assets?.length) return '';
+    const pos = assets.filter(([, w]) => w > 0);
+    const total = pos.reduce((s, [, w]) => s + w, 0);
+    const bar = total
+      ? `<div class="bar" role="img" aria-label="자산 구성">${pos
+          .map(([c, w]) => {
+            const label = ASSET_LABEL[c] ?? c;
+            return `<span class="seg" style="width:${((w / total) * 100).toFixed(1)}%;background:${assetVar(c)}" title="${label} ${w.toFixed(1)}%"></span>`;
+          })
+          .join('')}</div>`
+      : '';
+    const legend = assets
+      .map(([c, w]) => `<span class="lg"><i class="dot" style="background:${assetVar(c)}"></i>${ASSET_LABEL[c] ?? esc(c)} <b>${w.toFixed(1)}%</b></span>`)
+      .join('');
+    return `<div class="assets"><p class="sec-k">자산 구성</p>${bar}<div class="legend">${legend}</div></div>`;
+  }
+
+  function holdingsSection(holdings) {
+    if (!holdings?.length) return '';
+    const rows = holdings
+      .map(([name, w]) => `<li><span class="h-name">${esc(name)}</span>${w != null ? `<span class="h-w">${w.toFixed(2)}%</span>` : ''}</li>`)
+      .join('');
+    return `<div class="holdings"><p class="sec-k">상위 구성종목</p><ol>${rows}</ol></div>`;
+  }
+
   function card(item) {
     const li = document.createElement('li');
     li.className = 'card';
@@ -120,6 +153,8 @@
           ${stat('유형', item.category)}
           ${stat('코드', item.code)}
         </div>
+        ${assetSection(item.assets)}
+        ${holdingsSection(item.holdings)}
         <p class="reason">${item.safeReason}</p>
         ${item.baseIndex ? `<p class="base-index">기초지수: ${item.baseIndex}</p>` : ''}
       </div>`;
