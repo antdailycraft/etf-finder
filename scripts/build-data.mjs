@@ -12,6 +12,7 @@ import {
   parseKoreanAmount,
   parseNumber,
 } from './sources/naver.mjs';
+import { fetchCuShares } from './sources/wisereport.mjs';
 import { classify, applyOverride } from './classify.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -53,71 +54,91 @@ function extractHoldingsRaw(analysis) {
   if (!Array.isArray(list) || !list.length) return null;
   return list.map((h) => ({
     name: h.itemName,
-    code: /^\d{6}$/.test(h.itemCode ?? '') ? h.itemCode : null,
+    code: /^[0-9A-Z]{6}$/.test(h.itemCode ?? '') ? h.itemCode : null,
     count: parseNumber(h.stockCount),
     weight: parseNumber(h.etfWeight),
     est: false,
   }));
 }
 
-// 네이버는 순수 주식형이 아니면 구성종목 비중(etfWeight)을 주지 않는다.
-// 채권혼합형은 편입 주식이 1~3종목뿐이므로 자산군 주식 비중(assets의 EQUITY)을
-// 보유주수 × 주가 비율로 배분하면 개별 주식의 비중을 정확히 산출할 수 있다.
-// 채권 개별 종목의 비중은 어느 공개 소스에도 없어 계산 불가(UI에서 미공시로 안내).
-async function estimateMixedEquityWeights(items) {
-  // 채권·금리 ETF/ETN·현금성 행은 주식이 아니므로 배분 대상에서 제외
-  const NON_EQUITY = /국고|국채|통안|단기채|금융채|회사채|채권|금리|머니마켓|KOFR|CD|현금|예금|ETN|^T \d/;
+// 네이버는 순수 주식형이 아니면 구성종목 비중(etfWeight)을 주지 않아 직접 산출한다.
+// 1순위(정확): 비중 = 보유주수 × 주가 ÷ (NAV × 설정단위). 설정단위(CU)는 WiseReport
+//   상품설명에서만 얻을 수 있어 일부 상품 한정. 네이버 stockCount는 1CU 기준임을
+//   순수 주식형(비중이 주어지는 상품)과의 대조로 확인함.
+// 2순위(추정): 자산군 주식 비중(assets EQUITY)을 주식 행에 주수×주가 비율로 배분.
+//   주식 전부가 상위 10개 안에 보이는 경우만 적용(아니면 과대 산정).
+// 채권 개별 종목은 주수 자체가 미공시라 어느 방법으로도 계산 불가(UI에서 안내).
+async function computeHoldingWeights(items) {
+  // 채권·금리 ETF/ETN·현금성 행은 주식이 아님
+  const NON_EQUITY = /국고|국채|통안|단기채|금융채|회사채|채권|금리|머니마켓|MMF|KOFR|CD|현금|예금|ETN|^T \d/;
   const isEquityRow = (h) => h.count != null && !NON_EQUITY.test(h.name);
-  const equityRows = (it) => it.holdingsRaw.filter(isEquityRow);
-  // 상위 10개의 마지막 행까지 주식이면 그 밖에 주식이 더 있을 수 있어
-  // 비중이 과대 산정되므로 제외 (주식 전부가 상위 10개 안에 보이는 경우만 추정)
-  const fullyVisible = (it) =>
-    it.holdingsRaw.length < 10 || !isEquityRow(it.holdingsRaw[it.holdingsRaw.length - 1]);
 
   const targets = items.filter(
     (i) =>
-      i.category === '채권혼합' &&
+      (i.category === '채권혼합' || i.category === 'TDF') &&
       i.holdingsRaw &&
       !i.holdingsRaw.some((h) => h.weight != null) &&
-      fullyVisible(i),
+      i.holdingsRaw.some((h) => h.count != null),
   );
+  if (!targets.length) return;
 
-  // 2종목 이상 배분에 필요한 국내 주가를 중복 없이 수집
+  // 국내 코드가 있는 보유 행의 시세를 중복 없이 수집
   const priceCodes = new Set();
   for (const it of targets) {
-    const eq = equityRows(it);
-    if (eq.length >= 2 && eq.every((h) => h.code)) eq.forEach((h) => priceCodes.add(h.code));
+    for (const h of it.holdingsRaw) if (h.count != null && h.code) priceCodes.add(h.code);
   }
-  const prices = new Map();
-  if (priceCodes.size) {
-    console.log(`  구성종목 비중 추정용 주가 ${priceCodes.size}종목 조회...`);
-    const codes = [...priceCodes];
-    const fetched = await mapPool(codes, (c) => fetchStockPrice(c), CONCURRENCY);
-    codes.forEach((c, i) => prices.set(c, fetched[i]));
-  }
+  console.log(`  구성종목 비중 산출: 대상 ${targets.length}종목 (주가 ${priceCodes.size}건, 설정단위 ${targets.length}건 조회)...`);
+  const codes = [...priceCodes];
+  const priceList = await mapPool(codes, (c) => fetchStockPrice(c), CONCURRENCY);
+  const prices = new Map(codes.map((c, i) => [c, priceList[i]]));
+  const cuList = await mapPool(targets, (it) => fetchCuShares(it.code), CONCURRENCY);
 
-  let estimated = 0;
-  for (const it of targets) {
-    const equityPct = it.assets?.find(([c]) => c === 'EQUITY')?.[1];
-    if (!equityPct || equityPct <= 0) continue;
-    const eq = equityRows(it);
-    if (!eq.length) continue;
+  let exact = 0;
+  let anchored = 0;
+  targets.forEach((it, idx) => {
+    const equityPct = it.assets?.find(([c]) => c === 'EQUITY')?.[1] ?? null;
 
+    // ── 1순위: CU 기반 전 행 계산 ──
+    const cu = cuList[idx];
+    if (cu && it.nav) {
+      const rows = it.holdingsRaw.filter((h) => h.count != null && h.code && prices.get(h.code));
+      const ws = rows.map((h) => ((h.count * prices.get(h.code)) / (it.nav * cu)) * 100);
+      const total = ws.reduce((s, w) => s + w, 0);
+      const eqSum = rows.reduce((s, h, i) => s + (isEquityRow(h) ? ws[i] : 0), 0);
+      // CU 오파싱·주수 단위 불일치 방어: 총합과 주식 행 합계가 자산구성과 정합해야 함
+      const valid =
+        rows.length > 0 && total <= 105 && (equityPct == null || eqSum <= equityPct * 1.15 + 2);
+      if (valid) {
+        rows.forEach((h, i) => {
+          h.weight = ws[i];
+          h.est = true;
+        });
+        exact++;
+        return;
+      }
+    }
+
+    // ── 2순위: 자산구성 주식 비중 배분 (채권혼합, 주식 전부 노출 시) ──
+    if (it.category !== '채권혼합' || !equityPct || equityPct <= 0) return;
+    const fullyVisible =
+      it.holdingsRaw.length < 10 || !isEquityRow(it.holdingsRaw[it.holdingsRaw.length - 1]);
+    if (!fullyVisible) return;
+    const eq = it.holdingsRaw.filter(isEquityRow);
     if (eq.length === 1) {
       eq[0].weight = equityPct;
       eq[0].est = true;
-      estimated++;
-    } else if (eq.every((h) => h.code && prices.get(h.code))) {
+      anchored++;
+    } else if (eq.length && eq.every((h) => h.code && prices.get(h.code))) {
       const values = eq.map((h) => h.count * prices.get(h.code));
-      const total = values.reduce((s, v) => s + v, 0);
+      const totalV = values.reduce((s, v) => s + v, 0);
       eq.forEach((h, i) => {
-        h.weight = (equityPct * values[i]) / total;
+        h.weight = (equityPct * values[i]) / totalV;
         h.est = true;
       });
-      estimated++;
+      anchored++;
     }
-  }
-  console.log(`  주식 비중 추정: ${estimated}/${targets.length}종목`);
+  });
+  console.log(`  비중 산출: CU 기반 ${exact} + 주식비중 배분 ${anchored} / 대상 ${targets.length}종목`);
 }
 
 async function mapPool(items, worker, size) {
@@ -189,7 +210,7 @@ async function main() {
     CONCURRENCY,
   );
 
-  await estimateMixedEquityWeights(items);
+  await computeHoldingWeights(items);
 
   // 표시용 상위 5개로 압축: [이름, 비중] (+추정치는 세 번째 원소 1)
   for (const it of items) {
